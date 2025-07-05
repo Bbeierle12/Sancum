@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookMarked, Users, LayoutDashboard, SearchCode } from 'lucide-react';
+import { BookMarked, Users, LayoutDashboard, SearchCode, BrainCircuit } from 'lucide-react';
 
 import {
   SidebarMenu,
@@ -15,6 +15,7 @@ const navItems = [
   { href: '/journal', label: 'Journal', icon: BookMarked },
   { href: '/groups', label: 'Groups', icon: Users },
   { href: '/mirror-verse', label: 'Mirro-Verse', icon: SearchCode },
+  { href: '/study-buddy', label: 'Study Buddy', icon: BrainCircuit },
 ];
 
 export function Nav() {
