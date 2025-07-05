@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Sparkles, LoaderCircle, AlertTriangle } from 'lucide-react';
 
 import { getAIPrompt } from '@/lib/actions';
@@ -39,7 +39,7 @@ const initialState = {
 };
 
 export function CovenantEmber({ verse, journalEntries }: CovenantEmberProps) {
-  const [state, formAction] = useFormState(getAIPrompt, initialState);
+  const [state, formAction] = useActionState(getAIPrompt, initialState);
   const { toast } = useToast();
 
   useEffect(() => {
