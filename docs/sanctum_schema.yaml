@@ -1,0 +1,21 @@
+---
+# Template for a single verse object in the Sanctum data store.
+
+# verse_id: string # Unique identifier for the verse (e.g., "John_3_16").
+# text: string # The full, unabridged text of the scripture verse.
+# covenant_tags: list[string] # A list of one or more canonical tags describing the primary covenant themes.
+# emotion_codes: list[string] # A list of one or more canonical codes for the primary emotions conveyed.
+# pivot: object # An object detailing chiastic or golden-ratio structural analysis.
+#   type: string # The type of analysis (e.g., "Chiastic", "Golden_Ratio").
+#   center: string # The central pivot point of the structure.
+#   elements: list[string] # The corresponding elements of the structure.
+# notes: string # Free-form text for personal notes, reflections, or insights.
+- verse_id: ""
+  text: ""
+  covenant_tags: []
+  emotion_codes: []
+  pivot:
+    type: ""
+    center: ""
+    elements: []
+  notes: ""

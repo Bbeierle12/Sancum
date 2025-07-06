@@ -1,0 +1,70 @@
+---
+- verse_id: "Genesis_1_1"
+  text: "In the beginning God created the heaven and the earth."
+  covenant_tags: ["Creation"]
+  emotion_codes: ["Awe", "Wonder"]
+  pivot: null
+  notes: "The foundational verse of all scripture."
+
+- verse_id: "Exodus_20_8"
+  text: "Remember the sabbath day, to keep it holy."
+  covenant_tags: ["Sabbath", "Law", "Covenant-Renewal"]
+  emotion_codes: ["Peace", "Reverence"]
+  pivot: null
+  notes: "A sign of the covenant between God and His people."
+
+- verse_id: "Psalm_23_1"
+  text: "The LORD is my shepherd; I shall not want."
+  covenant_tags: ["Kingship", "Mercy"]
+  emotion_codes: ["Trust", "Peace", "Confidence"]
+  pivot: null
+  notes: "A declaration of absolute trust in God's provision."
+
+- verse_id: "Isaiah_53_5"
+  text: "But he was wounded for our transgressions, he was bruised for our iniquities: the chastisement of our peace was upon him; and with his stripes we are healed."
+  covenant_tags: ["Atonement", "Prophecy", "Mercy"]
+  emotion_codes: ["Grief", "Sorrow", "Hope", "Gratitude"]
+  pivot: null
+  notes: "Prophetic description of the Savior's atoning sacrifice."
+
+- verse_id: "Matthew_5_9"
+  text: "Blessed are the peacemakers: for they shall be called the children of God."
+  covenant_tags: ["Grace", "Wisdom"]
+  emotion_codes: ["Peace", "Hope"]
+  pivot: null
+  notes: "A beatitude that defines a core attribute of discipleship."
+
+- verse_id: "John_3_16"
+  text: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life."
+  covenant_tags: ["Atonement", "Love", "Grace"]
+  emotion_codes: ["Love", "Hope", "Gratitude"]
+  pivot: null
+  notes: "Often called the gospel in miniature."
+
+- verse_id: "Romans_8_28"
+  text: "And we know that all things work together for good to them that love God, to them who are the called according to his purpose."
+  covenant_tags: ["Wisdom", "Grace"]
+  emotion_codes: ["Hope", "Trust", "Confidence", "Assurance"]
+  pivot: null
+  notes: "A promise of ultimate providence and purpose."
+
+- verse_id: "Philippians_4_13"
+  text: "I can do all things through Christ which strengtheneth me."
+  covenant_tags: ["Grace"]
+  emotion_codes: ["Confidence", "Assurance", "Trust"]
+  pivot: null
+  notes: "A statement of empowerment through Christ."
+
+- verse_id: "1_John_4_8"
+  text: "He that loveth not knoweth not God; for God is love."
+  covenant_tags: ["Wisdom", "Grace"]
+  emotion_codes: ["Love", "Affection"]
+  pivot: null
+  notes: "Defines the fundamental nature of God."
+
+- verse_id: "Revelation_21_4"
+  text: "And God shall wipe away all tears from their eyes; and there shall be no more death, neither sorrow, nor crying, neither shall there be any more pain: for the former things are passed away."
+  covenant_tags: ["Resurrection", "Mercy", "Covenant-Renewal"]
+  emotion_codes: ["Comfort", "Hope", "Peace"]
+  pivot: null
+  notes: "The ultimate promise of restoration and eternal peace."
