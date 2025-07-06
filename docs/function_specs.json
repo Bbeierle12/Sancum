@@ -1,0 +1,53 @@
+
+[
+  {
+    "name": "add_verse_to_memory",
+    "description": "Adds a new scripture verse to the user's personal memory database for later review with spaced repetition.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "verse_id": {
+          "type": "string",
+          "description": "The canonical reference for the verse, e.g., 'John_3_16'."
+        },
+        "text": {
+          "type": "string",
+          "description": "The full text of the scripture verse."
+        },
+        "covenant_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of covenant themes associated with the verse."
+        },
+        "emotion_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of emotion codes associated with the verse."
+        },
+        "notes": {
+          "type": "string",
+          "description": "User's personal notes or reflections on the verse."
+        }
+      },
+      "required": ["verse_id", "text"]
+    }
+  },
+  {
+    "name": "analyze_scripture_structure",
+    "description": "Analyzes a given block of scripture text to identify structural patterns like chiasmus or the golden ratio.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "text_to_analyze": {
+          "type": "string",
+          "description": "The full text of the scripture to be analyzed."
+        }
+      },
+      "required": ["text_to_analyze"]
+    }
+  }
+]
