@@ -40,7 +40,7 @@ const studyBuddyFormSchema = z.object({
 });
 
 type StudyBuddyState = {
-  answer?: string;
+  answer?: StudyBuddyOutput | null;
   error?: string | null;
 }
 
@@ -61,7 +61,7 @@ export async function getStudyBuddyResponse(prevState: StudyBuddyState, formData
 
   try {
     const result: StudyBuddyOutput = await studyBuddy(validatedFields.data);
-    return { answer: result.answer, error: null };
+    return { answer: result, error: null };
   } catch (error) {
     console.error('Error getting study buddy response:', error);
     return { error: 'Failed to get a response from the study buddy. Please try again later.' };

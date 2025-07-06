@@ -17,7 +17,34 @@ const StudyBuddyInputSchema = z.object({
 export type StudyBuddyInput = z.infer<typeof StudyBuddyInputSchema>;
 
 const StudyBuddyOutputSchema = z.object({
-  answer: z.string().describe('A helpful and insightful answer to the user\'s question, based on the provided scripture.'),
+  verse: z.object({
+    reference: z.string().describe('Canonical Bible verse with full reference.'),
+    text: z.string().describe('The full text of the verse.'),
+  }),
+  explanation: z
+    .string()
+    .describe(
+      'Doctrinally sound and emotionally intelligent summary in a Christlike tone.'
+    ),
+  application: z
+    .string()
+    .describe(
+      'Real-world reflection or behavioral call-to-action modeled after Jesus’ teachings.'
+    ),
+  prayer: z
+    .string()
+    .optional()
+    .describe('Short, simple prayer aligned to the theme of the response.'),
+  cross_reference: z
+    .array(
+      z.object({
+        reference: z.string().describe('The reference of a supporting verse.'),
+        text: z.string().describe('The text of the supporting verse.'),
+      })
+    )
+    .describe(
+      'One or more supporting verses from elsewhere in Scripture, especially Christ’s own words.'
+    ),
 });
 export type StudyBuddyOutput = z.infer<typeof StudyBuddyOutputSchema>;
 
@@ -29,13 +56,18 @@ const prompt = ai.definePrompt({
   name: 'studyBuddyPrompt',
   input: {schema: StudyBuddyInputSchema},
   output: {schema: StudyBuddyOutputSchema},
-  prompt: `You are an expert, friendly, and insightful scripture study companion. Your purpose is to help users deepen their understanding of the scriptures.
+  prompt: `You are a Christ-centered Scripture Study Assistant.
+Please respond to the user’s query in the following structured JSON format:
+1.  **verse**: Provide an accurate quotation and reference for a relevant Bible verse.
+2.  **explanation**: Give a clear, doctrinally sound summary of what this verse means, in an emotionally intelligent and Christlike tone.
+3.  **application**: Offer a gentle, Christlike encouragement or a practical action the user can take (e.g., forgiveness, worship, prayer, reflection, humility).
+4.  **prayer** (optional): Write a 1-2 sentence prayer that is intimate, Christ-focused, and aligned to the theme.
+5.  **cross_reference**: List 1-2 supporting verses that harmonize with the main theme, preferably including Christ's own words.
 
-  A user has provided the following scripture reference and question.
-  Scripture: {{{scripture}}}
-  Question: {{{question}}}
+The user is asking about this scripture: {{{scripture}}}.
+Their specific question is: {{{question}}}
 
-  Please provide a thoughtful, contextually aware, and encouraging response that directly addresses their question. Draw upon the scripture itself, and if relevant, briefly mention related verses or principles to enrich their understanding. Keep your tone supportive and helpful.
+Base your response on their query.
   `,
 });
 
