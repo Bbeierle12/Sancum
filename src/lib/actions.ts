@@ -4,6 +4,8 @@
 import { generatePromptFromJournal, GeneratePromptFromJournalOutput } from '@/ai/flows/generate-prompt-from-journal';
 import { studyBuddy, StudyBuddyOutput } from '@/ai/flows/study-buddy-flow';
 import { z } from 'zod';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const journalFormSchema = z.object({
   journalEntries: z.string(),
@@ -64,11 +66,28 @@ export async function getStudyBuddyResponse(prevState: StudyBuddyState, formData
 
   try {
     const userContext = JSON.parse(validatedFields.data.userContext);
-    const result: StudyBuddyOutput = await studyBuddy({
+    const input = {
       scripture: validatedFields.data.scripture,
       question: validatedFields.data.question,
       userContext: userContext,
-    });
+    };
+    const result: StudyBuddyOutput = await studyBuddy(input);
+
+    // TODO: Replace with dynamic user ID from auth
+    const userId = 'user_1234'; 
+    
+    try {
+      await addDoc(collection(db, 'users', userId, 'interactions'), {
+        timestamp: serverTimestamp(),
+        query: input.question,
+        scripture: input.scripture,
+        response: result,
+      });
+    } catch (dbError) {
+      console.error("Error writing to Firestore: ", dbError);
+      // Non-critical error: We'll log it but still return the response to the user.
+    }
+    
     return { answer: result, error: null };
   } catch (error) {
     console.error('Error getting study buddy response:', error);
