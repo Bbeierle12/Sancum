@@ -4,8 +4,7 @@
 import { generatePromptFromJournal, GeneratePromptFromJournalOutput } from '@/ai/flows/generate-prompt-from-journal';
 import { studyBuddy, StudyBuddyOutput } from '@/ai/flows/study-buddy-flow';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getVerse } from './bible-api';
 
 const journalFormSchema = z.object({
   journalEntries: z.string(),
@@ -39,7 +38,6 @@ export async function getAIPrompt(prevState: JournalState, formData: FormData): 
 const studyBuddyFormSchema = z.object({
   scripture: z.string().optional(),
   question: z.string().min(1, 'Question is required.'),
-  userContext: z.string(),
 });
 
 type StudyBuddyState = {
@@ -51,7 +49,6 @@ export async function getStudyBuddyResponse(prevState: StudyBuddyState, formData
   const validatedFields = studyBuddyFormSchema.safeParse({
     scripture: formData.get('scripture'),
     question: formData.get('question'),
-    userContext: formData.get('userContext'),
   });
 
   if (!validatedFields.success) {
@@ -59,34 +56,26 @@ export async function getStudyBuddyResponse(prevState: StudyBuddyState, formData
     const errorString = [
       ...(errors.scripture || []),
       ...(errors.question || []),
-      ...(errors.userContext || []),
     ].join(' ');
     return { error: `Invalid form data. ${errorString}`.trim() };
   }
 
   try {
-    const userContext = JSON.parse(validatedFields.data.userContext);
+    const scripture = validatedFields.data.scripture;
+    let verseText = '';
+    if (scripture) {
+      const verse = await getVerse(scripture);
+      if (verse) {
+        verseText = verse.text;
+      }
+    }
+
     const input = {
       scripture: validatedFields.data.scripture,
       question: validatedFields.data.question,
-      userContext: userContext,
+      userContext: {}, 
     };
     const result: StudyBuddyOutput = await studyBuddy(input);
-
-    // TODO: Replace with dynamic user ID from auth
-    const userId = 'user_1234'; 
-    
-    try {
-      await addDoc(collection(db, 'users', userId, 'interactions'), {
-        timestamp: serverTimestamp(),
-        query: input.question,
-        scripture: input.scripture,
-        response: result,
-      });
-    } catch (dbError) {
-      console.error("Error writing to Firestore: ", dbError);
-      // Non-critical error: We'll log it but still return the response to the user.
-    }
     
     return { answer: result, error: null };
   } catch (error) {

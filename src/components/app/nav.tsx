@@ -1,8 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { BookMarked, Users, LayoutDashboard, SearchCode, BrainCircuit } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  BookMarked,
+  Users,
+  LayoutDashboard,
+  SearchCode,
+  BrainCircuit,
+  LogOut,
+} from 'lucide-react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useEffect, useState } from 'react';
 
 import {
   SidebarMenu,
@@ -20,6 +30,29 @@ const navItems = [
 
 export function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/auth');
+    } catch (error) {
+      console.error('Failed to sign out', error);
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -37,6 +70,14 @@ export function Nav() {
           </SidebarMenuButton>
         </SidebarMenuItem>
       ))}
+      {user && (
+        <SidebarMenuItem>
+          <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
+            <LogOut />
+            <span>Sign Out</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      )}
     </SidebarMenu>
   );
 }
