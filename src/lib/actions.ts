@@ -37,6 +37,7 @@ export async function getAIPrompt(prevState: JournalState, formData: FormData): 
 const studyBuddyFormSchema = z.object({
   scripture: z.string().min(1, 'Scripture reference is required.'),
   question: z.string().min(1, 'Question is required.'),
+  userContext: z.string(),
 });
 
 type StudyBuddyState = {
@@ -48,6 +49,7 @@ export async function getStudyBuddyResponse(prevState: StudyBuddyState, formData
   const validatedFields = studyBuddyFormSchema.safeParse({
     scripture: formData.get('scripture'),
     question: formData.get('question'),
+    userContext: formData.get('userContext'),
   });
 
   if (!validatedFields.success) {
@@ -55,12 +57,18 @@ export async function getStudyBuddyResponse(prevState: StudyBuddyState, formData
     const errorString = [
       ...(errors.scripture || []),
       ...(errors.question || []),
+      ...(errors.userContext || []),
     ].join(' ');
     return { error: `Invalid form data. ${errorString}`.trim() };
   }
 
   try {
-    const result: StudyBuddyOutput = await studyBuddy(validatedFields.data);
+    const userContext = JSON.parse(validatedFields.data.userContext);
+    const result: StudyBuddyOutput = await studyBuddy({
+      scripture: validatedFields.data.scripture,
+      question: validatedFields.data.question,
+      userContext: userContext,
+    });
     return { answer: result, error: null };
   } catch (error) {
     console.error('Error getting study buddy response:', error);
