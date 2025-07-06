@@ -95,15 +95,15 @@ export default function StudyBuddyPage() {
               <CardContent className="space-y-4">
                  <input type="hidden" name="userContext" value={JSON.stringify(userContext)} />
                 <div className="space-y-2">
-                  <Label htmlFor="scripture">Scripture Reference</Label>
-                  <Input id="scripture" name="scripture" placeholder="e.g., John 3:16" required />
+                  <Label htmlFor="scripture">Scripture Reference (optional)</Label>
+                  <Input id="scripture" name="scripture" placeholder="e.g., John 3:16" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="question">Your Question</Label>
                   <Textarea
                     id="question"
                     name="question"
-                    placeholder="e.g., What does it mean to be 'born again'?"
+                    placeholder="e.g., What does it mean to be 'born again'? or 'Find verses about hope'"
                     className="min-h-[150px]"
                     required
                   />

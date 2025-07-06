@@ -35,7 +35,7 @@ export async function getAIPrompt(prevState: JournalState, formData: FormData): 
 }
 
 const studyBuddyFormSchema = z.object({
-  scripture: z.string().min(1, 'Scripture reference is required.'),
+  scripture: z.string().optional(),
   question: z.string().min(1, 'Question is required.'),
   userContext: z.string(),
 });
