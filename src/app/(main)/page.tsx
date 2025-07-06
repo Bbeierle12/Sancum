@@ -13,7 +13,7 @@ import { PenSquare, BrainCircuit, History } from 'lucide-react';
 export default function DashboardPage() {
   const verseOfTheDay = {
     reference: 'John 3:16',
-    text: '“For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.”',
+    text: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
     tags: ['Gospel', 'Atonement', 'Love', 'Faith'],
   };
 
