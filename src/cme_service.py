@@ -20,12 +20,24 @@ os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 
 # --- Pydantic Models (DTOs) ---
+class Pivot(BaseModel):
+    type: str
+    center: Optional[str] = None
+    elements: Optional[List[str]] = []
+    score: Optional[float] = None
+    match_count: Optional[int] = None
+    depth: Optional[int] = None
+    total_words: Optional[int] = None
+    major_pivot: Optional[dict] = None
+    minor_pivot: Optional[dict] = None
+
 class Verse(BaseModel):
     verse_id: str = Field(..., description="Canonical verse reference, e.g., 'John_3_16'")
     text: str = Field(..., description="The full text of the scripture.")
     covenant_tags: Optional[List[str]] = []
     emotion_codes: Optional[List[str]] = []
     notes: Optional[str] = ""
+    pivot: Optional[Pivot] = None
     # SM-2 Spaced Repetition Fields
     repetitions: int = 0
     easiness_factor: float = 2.5
@@ -47,12 +59,17 @@ def get_db():
             "covenant_tags": str,  # Stored as JSON string
             "emotion_codes": str,  # Stored as JSON string
             "notes": str,
+            "pivot": str,          # Stored as JSON string
             "repetitions": int,
             "easiness_factor": float,
             "interval": int,
             "next_due": datetime,
         }, pk="verse_id")
         print("Database table 'verses' created.")
+    # Simple migration: add pivot column if it doesn't exist
+    elif "pivot" not in db["verses"].columns_dict:
+        db["verses"].add_column("pivot", str)
+        print("Column 'pivot' added to 'verses' table.")
     return db
 
 # --- Service Class ---
@@ -74,6 +91,7 @@ class CMEService:
         # Serialize lists to JSON strings for storage
         verse_dict["covenant_tags"] = json.dumps(verse.covenant_tags)
         verse_dict["emotion_codes"] = json.dumps(verse.emotion_codes)
+        verse_dict["pivot"] = json.dumps(verse.pivot.model_dump()) if verse.pivot else None
         
         self.db["verses"].upsert(verse_dict, pk="verse_id")
         return {"verse_id": verse.verse_id, "status": "created_or_updated"}
@@ -91,6 +109,13 @@ class CMEService:
                 verse_row['covenant_tags'] = json.loads(verse_row['covenant_tags'])
             if verse_row.get('emotion_codes'):
                 verse_row['emotion_codes'] = json.loads(verse_row['emotion_codes'])
+            
+            pivot_data = verse_row.get('pivot')
+            if pivot_data and pivot_data != 'null':
+                verse_row['pivot'] = Pivot(**json.loads(pivot_data))
+            else:
+                verse_row['pivot'] = None
+                
             results.append(Verse(**verse_row))
         return results
 
@@ -105,18 +130,10 @@ class CMEService:
         except sqlite_utils.db.NotFoundError:
             raise HTTPException(status_code=404, detail="Verse not found")
         
-        # Deserialize JSON strings to lists before passing to algorithm
-        if verse_row.get('covenant_tags'):
-            verse_row['covenant_tags'] = json.loads(verse_row['covenant_tags'])
-        if verse_row.get('emotion_codes'):
-            verse_row['emotion_codes'] = json.loads(verse_row['emotion_codes'])
-
         # Apply the SM-2 algorithm to get updated verse data
+        # The update_sm2 function works on a dictionary and doesn't need to
+        # know about the Pivot object; it just passes the JSON string through.
         updated_verse_data = update_sm2(verse_row, quality)
-
-        # Convert lists back to JSON strings for storage
-        updated_verse_data["covenant_tags"] = json.dumps(updated_verse_data["covenant_tags"])
-        updated_verse_data["emotion_codes"] = json.dumps(updated_verse_data["emotion_codes"])
 
         # Update the verse record in the database
         self.db["verses"].update(verse_id, updated_verse_data)

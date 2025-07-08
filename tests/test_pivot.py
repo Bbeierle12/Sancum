@@ -22,7 +22,7 @@ def test_unauthorized_access(client):
 def test_analyze_short_text(client):
     headers = {"X-API-Key": "test-key"}
     response = client.post("/analyze_text", headers=headers, json={"text": "short text"})
-    # It should return empty analysis as text is too short
+    # It should return empty analysis as text is too short for a meaningful analysis
     assert response.status_code == 200
     data = response.json()
     assert data["chiastic"] is None
@@ -38,13 +38,17 @@ def test_analyze_valid_text(client):
 
     # Chiastic check
     assert data["chiastic"]["type"] == "Chiastic"
-    assert data["chiastic"]["center"] == "i" # 8th word out of 16 (0-indexed)
+    assert data["chiastic"]["center"] == "i | shall" # Center is between 8th and 9th words
     assert len(data["chiastic"]["elements"]) == 8
-    assert data["chiastic"]["elements"][0] == "the <-> pastures"
+    assert data["chiastic"]["elements"][0] == "(A) the <-> pastures"
+    assert data["chiastic"]["score"] == 0.0 # No identical pairs
 
     # Golden Ratio check
     # 16 / 1.618 ~= 9.88 -> rounded to 10
+    # 16 * (1 - 1/1.618) ~= 6.1 -> rounded to 6
     assert data["golden_ratio"]["type"] == "Golden Ratio"
     assert data["golden_ratio"]["total_words"] == 16
-    assert data["golden_ratio"]["pivot_word_index"] == 10
-    assert data["golden_ratio"]["pivot_word"] == "lie" # 10th word
+    assert data["golden_ratio"]["major_pivot"]["index"] == 10
+    assert data["golden_ratio"]["major_pivot"]["word"] == "lie" # 10th word (0-indexed)
+    assert data["golden_ratio"]["minor_pivot"]["index"] == 6
+    assert data["golden_ratio"]["minor_pivot"]["word"] == "he"
