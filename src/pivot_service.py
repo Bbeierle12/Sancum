@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI, Depends, HTTPException, Header
 from pydantic import BaseModel, Field
 import re
+from typing import List, Optional
 
 # --- Configuration ---
 API_KEY = os.getenv("SANCTUM_API_KEY")
