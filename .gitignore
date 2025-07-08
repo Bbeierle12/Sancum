@@ -1,63 +1,64 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
-.pnp.loader
+.pnp.loader.js
 
-# testing
-/coverage
-
-# next.js
+# Next.js
 /.next/
 /out/
-
-# production
 /build
 
-# misc
-.DS_Store
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Local Environment Variables
+.env
+.env*
+!.env.example
 *.pem
 
-# debug
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# genkit & logs
-.genkit/
-*.log
-ngrok_cme.log
-ngrok_pivot.log
-
-# env
-.env*
-!.env.example
-
-# firebase
 firebase-debug.log
 firestore-debug.log
 
-# python
+# Genkit
+.genkit/*
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
-venv/
-pip-selfcheck.json
-pip-log.txt
-*.egg-info/
+/env/
+/venv/
+/ENV/
+/env.bak/
+/venv.bak/
 
-# Sanctum specific data
+# SQLite Database
+*.db
+*.db-journal*
 /data/
+
+# Misc
+.DS_Store
+
+# IDE / Editor
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# Test results
+/coverage
