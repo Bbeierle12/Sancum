@@ -87,8 +87,8 @@ def test_review_verse(cme_client):
     verse_data = {"verse_id": "Phil_4_13", "text": "I can do all things..."}
     cme_client.post("/add_verse", headers=headers, json=verse_data)
 
-    # Review with "Good" quality
-    review_data = {"quality": 2}
+    # Review with "Good" quality (a passing score in the new algorithm is >= 3)
+    review_data = {"quality": 3}
     response = cme_client.post("/review_verse/Phil_4_13", headers=headers, json=review_data)
     assert response.status_code == 200
     assert response.json()["status"] == "review_recorded"

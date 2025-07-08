@@ -46,7 +46,7 @@ class Verse(BaseModel):
 
 
 class VerseUpdate(BaseModel):
-    quality: int = Field(..., ge=0, le=4, description="Recall quality: 0-Again, 1-Hard, 2-Good, 3-Easy, 4-Perfect")
+    quality: int = Field(..., ge=0, le=5, description="Recall quality from 0 (complete blackout) to 5 (perfect). A score of 3 or higher is a successful recall.")
 
 
 # --- Database Setup ---
