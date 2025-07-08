@@ -1,6 +1,6 @@
+
 'use client';
 
-import { usePathname } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -16,13 +16,6 @@ import { Feather, Settings } from 'lucide-react';
 import { Nav } from '@/components/app/nav';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-
-  // Don't show sidebar on auth page
-  if (pathname === '/auth') {
-    return <>{children}</>;
-  }
-
   return (
     <SidebarProvider>
       <Sidebar>
