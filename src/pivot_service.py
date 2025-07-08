@@ -1,9 +1,11 @@
 
 import os
 from fastapi import FastAPI, Depends, HTTPException, Header
-from pydantic import BaseModel, Field
 import re
 from typing import List, Optional
+
+# Import the new schemas
+from src.schemas import PivotIn, PivotOut, PivotPoint
 
 # Import the modular detectors
 from src.detectors import chiastic, golden
@@ -18,23 +20,6 @@ app = FastAPI(
     description="A service to analyze scripture text for structural patterns.",
     version="1.1.0",
 )
-
-# --- Pydantic Models ---
-class PivotIn(BaseModel):
-    text_section: str = Field(..., description="The text to analyze.")
-    scale: str = Field("TEXTUAL", description="The scale of the analysis.")
-    lens: List[str] = Field([], description="List of detectors to run, e.g., ['CHIASMUS', 'GOLDEN']")
-
-class PivotPoint(BaseModel):
-    detector: str
-    position: int
-    score: float
-
-class PivotOut(BaseModel):
-    text_section: str
-    scale: str
-    points: List[PivotPoint]
-
 
 # --- API Key Dependency ---
 async def verify_api_key(x_api_key: str = Header(...)):
