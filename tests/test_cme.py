@@ -68,7 +68,9 @@ def test_add_verse_with_pivot_data(client):
         "type": "Chiastic",
         "center": "C",
         "elements": ["A <-> A", "B <-> B"],
-        "score": 1.0
+        "score": 1.0,
+        "match_count": 2,
+        "depth": 2
     }
     verse_data = {
         "verse_id": "Test_Pivot_1",
