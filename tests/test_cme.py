@@ -3,11 +3,11 @@ import pytest
 from datetime import datetime, timedelta
 import sqlite_utils
 import json
-from src.cme_service import DB_PATH
 from src import db as review_db
 import uuid
 
 # All fixtures are now defined in `tests/conftest.py` and are automatically used.
+# The `cme_client` fixture provides an isolated, temporary database for each test.
 
 def test_unauthorized_access(cme_client):
     response = cme_client.post("/add_verse", json={})
@@ -31,12 +31,15 @@ def test_add_verse(cme_client):
     assert response.status_code == 201
     assert response.json() == {"verse_id": "John_3_16", "status": "created_or_updated"}
 
-    # Check if it's in the DB
-    db = sqlite_utils.Database(DB_PATH)
-    row = db["verses"].get("John_3_16")
-    assert row["text"] == "For God so loved the world..."
-    assert row["notes"] == "A test note."
-    assert row["pivot"] is None
+    # Check if it's in the DB using the patched review_db connector
+    db = review_db.connect()
+    try:
+        row = db["verses"].get("John_3_16")
+        assert row["text"] == "For God so loved the world..."
+        assert row["notes"] == "A test note."
+        assert row["pivot"] is None
+    finally:
+        db.close()
 
 def test_add_verse_with_pivot_data(cme_client):
     headers = {"X-API-Key": "test-key"}
@@ -56,12 +59,16 @@ def test_add_verse_with_pivot_data(cme_client):
     response = cme_client.post("/add_verse", headers=headers, json=verse_data)
     assert response.status_code == 201
 
-    db = sqlite_utils.Database(DB_PATH)
-    row = db["verses"].get("Test_Pivot_1")
-    assert row["pivot"] is not None
-    retrieved_pivot = json.loads(row["pivot"])
-    assert retrieved_pivot["type"] == "Chiastic"
-    assert retrieved_pivot["score"] == 1.0
+    db = review_db.connect()
+    try:
+        row = db["verses"].get("Test_Pivot_1")
+        assert row["pivot"] is not None
+        retrieved_pivot = json.loads(row["pivot"])
+        assert retrieved_pivot["type"] == "Chiastic"
+        assert retrieved_pivot["score"] == 1.0
+    finally:
+        db.close()
+
 
 def test_get_flashcards_empty(cme_client):
     headers = {"X-API-Key": "test-key"}
@@ -95,13 +102,17 @@ def test_review_verse(cme_client):
     assert response.status_code == 200
     assert response.json()["status"] == "review_recorded"
 
-    db = sqlite_utils.Database(DB_PATH)
-    row = db["verses"].get("Phil_4_13")
-    assert row["repetitions"] == 1
-    assert row["interval"] == 1  # First interval is 1 day
-    # Check if next_due is roughly 1 day from now
-    next_due_dt = datetime.fromisoformat(row["next_due"].replace("Z", "+00:00"))
-    assert (next_due_dt - datetime.utcnow()).days >= 0
+    db = review_db.connect()
+    try:
+        row = db["verses"].get("Phil_4_13")
+        assert row["repetitions"] == 1
+        assert row["interval"] == 1  # First interval is 1 day
+        # Check if next_due is roughly 1 day from now
+        next_due_dt = datetime.fromisoformat(row["next_due"].replace("Z", "+00:00"))
+        assert (next_due_dt - datetime.utcnow()).days >= 0
+    finally:
+        db.close()
+
 
 def test_review_nonexistent_verse(cme_client):
     headers = {"X-API-Key": "test-key"}
