@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import sqlite_utils
 import json
 from src.cme_service import DB_PATH
+from src import db as review_db
+import uuid
 
 # All fixtures are now defined in `tests/conftest.py` and are automatically used.
 
@@ -105,3 +107,61 @@ def test_review_nonexistent_verse(cme_client):
     headers = {"X-API-Key": "test-key"}
     response = cme_client.post("/review_verse/Non_Existent_1_1", headers=headers, json={"quality": 3})
     assert response.status_code == 404
+
+def test_user_review(cme_client):
+    headers = {"X-API-Key": "test-key"}
+    verse_id = "1Cor_13_4"
+    user_id = str(uuid.uuid4())
+    
+    # Add the verse first (though it's not strictly required by the review logic)
+    cme_client.post("/add_verse", headers=headers, json={"verse_id": verse_id, "text": "Love is patient..."})
+    
+    # First review (q=5, perfect)
+    review_data = {"user_id": user_id, "verse_id": verse_id, "q": 5}
+    response = cme_client.post("/review", headers=headers, json=review_data)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user_id"] == user_id
+    assert data["verse_id"] == verse_id
+    assert "Your next review is in 1 days" in data["message"]
+
+    # Verify state in DB
+    db = review_db.get_db_conn()
+    state = db["reviews"].get((user_id, verse_id))
+    assert state is not None
+    assert state["repetition_count"] == 1
+    assert state["interval"] == 1
+    assert state["ease_factor"] > 2.5 # Easiness should increase
+    
+    # Second review (q=4, good)
+    review_data_2 = {"user_id": user_id, "verse_id": verse_id, "q": 4}
+    response_2 = cme_client.post("/review", headers=headers, json=review_data_2)
+    assert response_2.status_code == 200
+    data_2 = response_2.json()
+    assert "Your next review is in 6 days" in data_2["message"]
+
+    # Verify state in DB again
+    state_2 = db["reviews"].get((user_id, verse_id))
+    assert state_2["repetition_count"] == 2
+    assert state_2["interval"] == 6
+
+def test_user_review_failure(cme_client):
+    headers = {"X-API-Key": "test-key"}
+    verse_id = "Prov_3_5"
+    user_id = str(uuid.uuid4())
+    
+    # Review with a failing score (q=1)
+    review_data = {"user_id": user_id, "verse_id": verse_id, "q": 1}
+    response = cme_client.post("/review", headers=headers, json=review_data)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "Your next review is in 1 days" in data["message"]
+    
+    # Verify state in DB
+    db = review_db.get_db_conn()
+    state = db["reviews"].get((user_id, verse_id))
+    assert state["repetition_count"] == 0 # Reps reset
+    assert state["interval"] == 1 # Interval resets
+    assert state["ease_factor"] < 2.5 # Easiness should decrease

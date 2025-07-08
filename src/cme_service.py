@@ -8,7 +8,9 @@ from typing import List, Optional
 from datetime import datetime
 
 # Import the algorithm module
-from src.algorithms.sm2 import update_sm2
+from src.algorithms.sm2 import update_sm2, update_sm2_stats
+# Import the new DB module for reviews
+from src import db as review_db
 
 # --- Configuration ---
 API_KEY = os.getenv("SANCTUM_API_KEY")
@@ -38,7 +40,7 @@ class Verse(BaseModel):
     emotion_codes: Optional[List[str]] = []
     notes: Optional[str] = ""
     pivot: Optional[Pivot] = None
-    # SM-2 Spaced Repetition Fields
+    # SM-2 Spaced Repetition Fields (for general, non-user-specific reviews)
     repetitions: int = 0
     easiness_factor: float = 2.5
     interval: int = 0  # in days
@@ -46,7 +48,7 @@ class Verse(BaseModel):
 
 
 class VerseUpdate(BaseModel):
-    quality: int = Field(..., ge=0, le=5, description="Recall quality from 0 (complete blackout) to 5 (perfect). A score of 3 or higher is a successful recall.")
+    quality: int = Field(..., ge=0, le=5, description="Recall quality from 0 (complete blackout) to 5 (perfect).")
 
 
 # --- Database Setup ---
@@ -70,6 +72,10 @@ def get_db():
     elif "pivot" not in db["verses"].columns_dict:
         db["verses"].add_column("pivot", str)
         print("Column 'pivot' added to 'verses' table.")
+    
+    # Initialize the reviews table via the new db module
+    review_db.get_db_conn()
+    
     return db
 
 # --- Service Class ---
@@ -123,6 +129,7 @@ class CMEService:
         """
         Records a review for a verse and schedules the next review date,
         practicing line-upon-line recollection.
+        This is a legacy, non-user-specific review endpoint.
         """
         try:
             # Fetch the verse from the database
@@ -130,14 +137,45 @@ class CMEService:
         except sqlite_utils.db.NotFoundError:
             raise HTTPException(status_code=404, detail="Verse not found")
         
-        # Apply the SM-2 algorithm to get updated verse data
-        # The update_sm2 function works on a dictionary and doesn't need to
-        # know about the Pivot object; it just passes the JSON string through.
         updated_verse_data = update_sm2(verse_row, quality)
 
         # Update the verse record in the database
         self.db["verses"].update(verse_id, updated_verse_data)
         return {"verse_id": verse_id, "status": "review_recorded", "next_due": updated_verse_data["next_due"]}
+
+    def process_user_review(self, verse_id: str, user_id: str, q_rating: int):
+        """
+        Processes a user-specific review and updates their personal SM-2 stats.
+        """
+        state = review_db.get_review_state(user_id, verse_id)
+        ease = state["ease_factor"] if state else 2.5
+        reps = state["repetition_count"] if state else 0
+        interval = state["interval"] if state else 0
+
+        new_stats = update_sm2_stats(ease, reps, interval, q_rating)
+
+        review_db.save_review_state(
+            user_id,
+            verse_id,
+            {
+                "ease_factor": new_stats["easiness_factor"],
+                "repetition_count": new_stats["repetitions"],
+                "interval": new_stats["interval"],
+                "next_due": new_stats["next_due"],
+            },
+        )
+
+        encouragement = (
+            f"Your next review is in {new_stats['interval']} days. "
+            "Keep the word close to your heart."
+        )
+
+        return {
+            "verse_id": verse_id,
+            "user_id": user_id,
+            "next_due": new_stats["next_due"],
+            "message": encouragement,
+        }
 
 # --- FastAPI App ---
 app = FastAPI(
@@ -176,9 +214,19 @@ async def get_flashcards_endpoint(limit: int = 10, service: CMEService = Depends
     """Retrieves all verses due for review today."""
     return service.get_flashcards(limit=limit)
 
+class UserReviewPayload(BaseModel):
+    user_id: str
+    verse_id: str
+    q: int = Field(..., ge=0, le=5, description="Recall quality from 0 (complete blackout) to 5 (perfect).")
+
+@app.post("/review", dependencies=[Depends(verify_api_key)])
+async def review_endpoint(payload: UserReviewPayload, service: CMEService = Depends(get_cme_service)):
+    """Processes a verse review for a specific user."""
+    return service.process_user_review(payload.verse_id, payload.user_id, payload.q)
+
 @app.post("/review_verse/{verse_id}", status_code=200, dependencies=[Depends(verify_api_key)])
 async def review_verse_endpoint(verse_id: str, update: VerseUpdate, service: CMEService = Depends(get_cme_service)):
-    """Updates a verse's spaced repetition data after a review."""
+    """(Legacy) Updates a verse's spaced repetition data after a review."""
     return service.review_verse(verse_id, update.quality)
 
 if __name__ == "__main__":
