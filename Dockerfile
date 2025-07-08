@@ -1,17 +1,16 @@
 FROM python:3.11-slim
-
 WORKDIR /app
 
-# Copy dependency file
+# Copy and install requirements
 COPY requirements.txt ./
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application source code
-COPY src/ ./src
+# Copy source code and scripts
+COPY src/ src/
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Command to run the pivot service
-# The cme_service can be run by changing the command below to:
-# CMD ["uvicorn", "src.cme_service:app", "--host", "0.0.0.0", "--port", "8000"]
-CMD ["uvicorn", "src.pivot_service:app", "--host", "0.0.0.0", "--port", "8001"]
+# Create data directory for SQLite
+RUN mkdir -p /app/data
+
+ENTRYPOINT ["docker-entrypoint.sh"]

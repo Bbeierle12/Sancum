@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  cme_service:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SANCTUM_API_KEY=${SANCTUM_API_KEY}
+      - SERVICE_TO_RUN=cme_service
+    volumes:
+      - ./data:/app/data
+
+  pivot_service:
+    build: .
+    ports:
+      - "8001:8001"
+    environment:
+      - SANCTUM_API_KEY=${SANCTUM_API_KEY}
+      - SERVICE_TO_RUN=pivot_service
