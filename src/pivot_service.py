@@ -16,29 +16,25 @@ if not API_KEY:
 app = FastAPI(
     title="Sanctum Pivot Analyzer Service",
     description="A service to analyze scripture text for structural patterns.",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 # --- Pydantic Models ---
-class TextToAnalyze(BaseModel):
-    text: str = Field(..., min_length=1, description="The scripture text to analyze.")
+class PivotIn(BaseModel):
+    text_section: str = Field(..., description="The text to analyze.")
+    scale: str = Field("TEXTUAL", description="The scale of the analysis.")
+    lens: List[str] = Field([], description="List of detectors to run, e.g., ['CHIASMUS', 'GOLDEN']")
 
-class ChiasticAnalysis(BaseModel):
-    type: str = "Chiastic"
-    center: str
-    elements: List[str]
+class PivotPoint(BaseModel):
+    detector: str
+    position: int
     score: float
-    match_count: int
-    depth: int
 
-class GoldenRatioAnalysis(BaseModel):
-    type: str = "Golden Ratio"
-    total_words: int
-    major_pivot_index: int
+class PivotOut(BaseModel):
+    text_section: str
+    scale: str
+    points: List[PivotPoint]
 
-class AnalysisResponse(BaseModel):
-    chiastic: Optional[ChiasticAnalysis] = None
-    golden_ratio: Optional[GoldenRatioAnalysis] = None
 
 # --- API Key Dependency ---
 async def verify_api_key(x_api_key: str = Header(...)):
@@ -46,26 +42,33 @@ async def verify_api_key(x_api_key: str = Header(...)):
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
 # --- API Endpoints ---
-@app.post("/analyze_text", response_model=AnalysisResponse, dependencies=[Depends(verify_api_key)])
-async def perform_analysis(payload: TextToAnalyze):
-    """Analyzes text for chiastic and golden ratio patterns."""
+@app.post("/analyze_text", response_model=List[PivotOut], dependencies=[Depends(verify_api_key)])
+async def perform_analysis(payload: PivotIn) -> List[PivotOut]:
+    """Analyzes text for chiastic and golden ratio patterns based on selected lenses."""
     try:
-        words = re.findall(r'\b\w+\b', payload.text.lower())
-        
-        chiastic_result = chiastic.detect(words)
-        
-        golden_result = None
-        major_pivot_index = golden.detect(words)
-        if major_pivot_index is not None:
-            golden_result = GoldenRatioAnalysis(
-                total_words=len(words),
-                major_pivot_index=major_pivot_index
-            )
+        tokens = re.findall(r'\b\w+\b', payload.text_section.lower())
+        points: List[PivotPoint] = []
 
-        return AnalysisResponse(
-            chiastic=chiastic_result, 
-            golden_ratio=golden_result
+        if "CHIASMUS" in payload.lens:
+            res = chiastic.detect(tokens)
+            if res:
+                points.append(
+                    PivotPoint(detector="chiastic", position=res[0], score=res[1])
+                )
+        
+        if "GOLDEN" in payload.lens:
+            idx = golden.detect(tokens)
+            if idx is not None:
+                points.append(PivotPoint(detector="golden", position=idx, score=1.0))
+        
+        pivot_result = PivotOut(
+            text_section=payload.text_section,
+            scale=payload.scale,
+            points=points
         )
+        
+        return [pivot_result]
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
