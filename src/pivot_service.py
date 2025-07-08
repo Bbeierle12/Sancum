@@ -34,8 +34,7 @@ class ChiasticAnalysis(BaseModel):
 class GoldenRatioAnalysis(BaseModel):
     type: str = "Golden Ratio"
     total_words: int
-    major_pivot: dict
-    minor_pivot: dict
+    major_pivot_index: int
 
 class AnalysisResponse(BaseModel):
     chiastic: Optional[ChiasticAnalysis] = None
@@ -54,7 +53,14 @@ async def perform_analysis(payload: TextToAnalyze):
         words = re.findall(r'\b\w+\b', payload.text.lower())
         
         chiastic_result = chiastic.detect(words)
-        golden_result = golden.detect(words)
+        
+        golden_result = None
+        major_pivot_index = golden.detect(words)
+        if major_pivot_index is not None:
+            golden_result = GoldenRatioAnalysis(
+                total_words=len(words),
+                major_pivot_index=major_pivot_index
+            )
 
         return AnalysisResponse(
             chiastic=chiastic_result, 
