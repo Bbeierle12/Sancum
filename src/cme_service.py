@@ -73,9 +73,6 @@ def get_db():
         db["verses"].add_column("pivot", str)
         print("Column 'pivot' added to 'verses' table.")
     
-    # Initialize the reviews table via the new db module
-    review_db.get_db_conn()
-    
     return db
 
 # --- Service Class ---
@@ -200,6 +197,9 @@ def get_cme_service():
 async def startup_event():
     # Ensure the database and table exist on startup
     get_db()
+    db_reviews = review_db.connect()
+    db_reviews.close()
+
 
 @app.post("/add_verse", status_code=201, dependencies=[Depends(verify_api_key)])
 async def add_verse_endpoint(verse: Verse, service: CMEService = Depends(get_cme_service)):

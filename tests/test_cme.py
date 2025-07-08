@@ -127,12 +127,15 @@ def test_user_review(cme_client):
     assert "Your next review is in 1 days" in data["message"]
 
     # Verify state in DB
-    db = review_db.get_db_conn()
-    state = db["reviews"].get((user_id, verse_id))
-    assert state is not None
-    assert state["repetition_count"] == 1
-    assert state["interval"] == 1
-    assert state["ease_factor"] > 2.5 # Easiness should increase
+    db = review_db.connect()
+    try:
+        state = db["verse_reviews"].get((user_id, verse_id))
+        assert state is not None
+        assert state["repetition_count"] == 1
+        assert state["interval"] == 1
+        assert state["ease_factor"] > 2.5 # Easiness should increase
+    finally:
+        db.close()
     
     # Second review (q=4, good)
     review_data_2 = {"user_id": user_id, "verse_id": verse_id, "q": 4}
@@ -142,9 +145,14 @@ def test_user_review(cme_client):
     assert "Your next review is in 6 days" in data_2["message"]
 
     # Verify state in DB again
-    state_2 = db["reviews"].get((user_id, verse_id))
-    assert state_2["repetition_count"] == 2
-    assert state_2["interval"] == 6
+    db = review_db.connect()
+    try:
+        state_2 = db["verse_reviews"].get((user_id, verse_id))
+        assert state_2["repetition_count"] == 2
+        assert state_2["interval"] == 6
+    finally:
+        db.close()
+
 
 def test_user_review_failure(cme_client):
     headers = {"X-API-Key": "test-key"}
@@ -160,8 +168,11 @@ def test_user_review_failure(cme_client):
     assert "Your next review is in 1 days" in data["message"]
     
     # Verify state in DB
-    db = review_db.get_db_conn()
-    state = db["reviews"].get((user_id, verse_id))
-    assert state["repetition_count"] == 0 # Reps reset
-    assert state["interval"] == 1 # Interval resets
-    assert state["ease_factor"] < 2.5 # Easiness should decrease
+    db = review_db.connect()
+    try:
+        state = db["verse_reviews"].get((user_id, verse_id))
+        assert state["repetition_count"] == 0 # Reps reset
+        assert state["interval"] == 1 # Interval resets
+        assert state["ease_factor"] < 2.5 # Easiness should decrease
+    finally:
+        db.close()
