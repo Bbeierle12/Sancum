@@ -1,37 +1,52 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Dependencies
+# dependencies
 /node_modules
-/frontend/node_modules
-/backend/.venv
-/backend/__pycache__
-/backend/src/__pycache__
-/backend/tests/__pycache__
+/.pnp
+.pnp.js
+.yarn/install-state.gz
 
-# Next.js
-/frontend/.next/
-/frontend/out/
+# testing
+/coverage
 
-# Production
+# next.js
+/.next/
+/out/
+
+# production
 /build
 
-# Misc
+# misc
 .DS_Store
 *.pem
 
-# Logs
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/backend/ngrok_*.log
-genkit-debug.log
-
-# Environment Variables
-.env
-.env*.local
-
-# data
-/data/
+.pnpm-debug.log*
 
 # vercel
 .vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+.genkit/*
+.env*
+!.env.example
+
+# firebase
+firebase-debug.log
+firestore-debug.log
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+/data
