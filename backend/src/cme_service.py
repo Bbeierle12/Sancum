@@ -1,5 +1,6 @@
 
 import os
+import logging
 import sqlite_utils
 import json
 from fastapi import FastAPI, Depends, HTTPException, Header
@@ -8,14 +9,17 @@ from typing import List, Optional
 from datetime import datetime
 
 # Import the algorithm module
-from src.algorithms.sm2 import update_sm2, update_sm2_stats
-# Import the new DB module for reviews
-from src import db as review_db
+from src.algorithms.sm2 import update_sm2
 
 # --- Configuration ---
-API_KEY = os.getenv("SANCTUM_API_KEY")
-if not API_KEY:
-    raise ValueError("SANCTUM_API_KEY environment variable not set.")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+API_KEY = os.getenv("SANCTUM_API_KEY", "dev")
+if API_KEY == "dev":
+    logger.warning(
+        "SANCTUM_API_KEY not set. Running in development mode; requests are not authenticated."
+    )
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'sanctum.db')
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -48,7 +52,7 @@ class Verse(BaseModel):
 
 
 class VerseUpdate(BaseModel):
-    quality: int = Field(..., ge=0, le=5, description="Recall quality from 0 (complete blackout) to 5 (perfect).")
+    quality: int = Field(..., ge=0, le=4, description="Recall quality: 0-Again, 1-Hard, 2-Good, 3-Easy, 4-Perfect")
 
 
 # --- Database Setup ---
@@ -67,11 +71,11 @@ def get_db():
             "interval": int,
             "next_due": datetime,
         }, pk="verse_id")
-        print("Database table 'verses' created.")
+        logger.info("Database table 'verses' created.")
     # Simple migration: add pivot column if it doesn't exist
     elif "pivot" not in db["verses"].columns_dict:
         db["verses"].add_column("pivot", str)
-        print("Column 'pivot' added to 'verses' table.")
+        logger.info("Column 'pivot' added to 'verses' table.")
     
     return db
 
@@ -140,40 +144,6 @@ class CMEService:
         self.db["verses"].update(verse_id, updated_verse_data)
         return {"verse_id": verse_id, "status": "review_recorded", "next_due": updated_verse_data["next_due"]}
 
-    def process_user_review(self, verse_id: str, user_id: str, q_rating: int):
-        """
-        Processes a user-specific review and updates their personal SM-2 stats.
-        """
-        state = review_db.get_review_state(user_id, verse_id)
-        ease = state["ease_factor"] if state else 2.5
-        reps = state["repetition_count"] if state else 0
-        interval = state["interval"] if state else 0
-
-        new_stats = update_sm2_stats(ease, reps, interval, q_rating)
-
-        review_db.save_review_state(
-            user_id,
-            verse_id,
-            {
-                "ease_factor": new_stats["easiness_factor"],
-                "repetition_count": new_stats["repetitions"],
-                "interval": new_stats["interval"],
-                "next_due": new_stats["next_due"],
-            },
-        )
-
-        encouragement = (
-            f"Your next review is in {new_stats['interval']} days. "
-            "Keep the word close to your heart."
-        )
-
-        return {
-            "verse_id": verse_id,
-            "user_id": user_id,
-            "next_due": new_stats["next_due"],
-            "message": encouragement,
-        }
-
 # --- FastAPI App ---
 app = FastAPI(
     title="Sanctum Covenant Memory Engine (CME)",
@@ -182,8 +152,8 @@ app = FastAPI(
 )
 
 # --- API Key Dependency ---
-async def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
+async def verify_api_key(x_api_key: str = Header(None)):
+    if API_KEY != "dev" and x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
 # --- Service Dependency ---
@@ -197,8 +167,6 @@ def get_cme_service():
 async def startup_event():
     # Ensure the database and table exist on startup
     get_db()
-    db_reviews = review_db.connect()
-    db_reviews.close()
 
 
 @app.post("/add_verse", status_code=201, dependencies=[Depends(verify_api_key)])
@@ -214,16 +182,6 @@ async def get_flashcards_endpoint(limit: int = 10, service: CMEService = Depends
     """Retrieves all verses due for review today."""
     return service.get_flashcards(limit=limit)
 
-class UserReviewPayload(BaseModel):
-    user_id: str
-    verse_id: str
-    q: int = Field(..., ge=0, le=5, description="Recall quality from 0 (complete blackout) to 5 (perfect).")
-
-@app.post("/review", dependencies=[Depends(verify_api_key)])
-async def review_endpoint(payload: UserReviewPayload, service: CMEService = Depends(get_cme_service)):
-    """Processes a verse review for a specific user."""
-    return service.process_user_review(payload.verse_id, payload.user_id, payload.q)
-
 @app.post("/review_verse/{verse_id}", status_code=200, dependencies=[Depends(verify_api_key)])
 async def review_verse_endpoint(verse_id: str, update: VerseUpdate, service: CMEService = Depends(get_cme_service)):
     """(Legacy) Updates a verse's spaced repetition data after a review."""
@@ -231,5 +189,5 @@ async def review_verse_endpoint(verse_id: str, update: VerseUpdate, service: CME
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting CME Service. Ensure SANCTUM_API_KEY is set.")
+    logger.info("Starting CME Service on http://0.0.0.0:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)
