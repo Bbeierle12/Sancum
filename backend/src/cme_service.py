@@ -135,7 +135,7 @@ class CMEService:
         try:
             # Fetch the verse from the database
             verse_row = self.db["verses"].get(verse_id)
-        except sqlite_utils.db.NotFoundError:
+        except sqlite_utils.NotFoundError:
             raise HTTPException(status_code=404, detail="Verse not found")
         
         updated_verse_data = update_sm2(verse_row, quality)
