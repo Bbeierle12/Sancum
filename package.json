@@ -8,7 +8,8 @@
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "cd backend && sh ./scripts/run_ngrok.sh",
     "install:backend": "pip install -r backend/requirements.txt",
-    "test:backend": "cd backend && pytest"
+    "test:backend": "cd backend && pytest",
+    "format": "pre-commit run --all-files"
   },
   "workspaces": [
     "frontend"
