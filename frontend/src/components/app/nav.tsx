@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/journal', label: 'Journal', icon: BookMarked },
   { href: '/groups', label: 'Groups', icon: Users },
   { href: '/mirror-verse', label: 'Mirro-Verse', icon: SearchCode },
@@ -55,7 +56,7 @@ export function Nav() {
         <SidebarMenuItem key={item.href}>
           <SidebarMenuButton
             asChild
-            isActive={pathname === item.href}
+            isActive={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
             tooltip={item.label}
           >
             <Link href={item.href}>
