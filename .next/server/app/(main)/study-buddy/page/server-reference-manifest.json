@@ -1,0 +1,16 @@
+{
+  "node": {
+    "604f5de3543c47e2bd69e87321b656d52b1c38afdb": {
+      "workers": {
+        "app/(main)/study-buddy/page": {
+          "moduleId": "[project]/.next-internal/server/app/(main)/study-buddy/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(main)/study-buddy/page": "action-browser"
+      }
+    }
+  },
+  "edge": {}
+}
