@@ -1,95 +1,97 @@
 
 import os
+import logging
 from fastapi import FastAPI, Depends, HTTPException, Header
+from pydantic import BaseModel, Field
 import re
-from typing import List
-
-# Import the schemas
-from src.schemas import PivotIn, PivotOut, PivotPoint, ForecastRequest, ForecastPoint
-from src.forecasters.hawkes import HawkesForecaster
+from typing import List, Optional
 
 # Import the modular detectors
 from src.detectors import chiastic, golden
 
 # --- Configuration ---
-API_KEY = os.getenv("SANCTUM_API_KEY")
-if not API_KEY:
-    raise ValueError("SANCTUM_API_KEY environment variable not set.")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+API_KEY = os.getenv("SANCTUM_API_KEY", "dev")
+if API_KEY == "dev":
+    logger.warning(
+        "SANCTUM_API_KEY not set. Running in development mode; requests are not authenticated."
+    )
 
 app = FastAPI(
     title="Sanctum Pivot Analyzer Service",
-    description="A service to analyze scripture text for structural patterns and forecast events.",
-    version="1.2.0",
+    description="A service to analyze scripture text for structural patterns.",
+    version="1.0.0",
 )
 
+# --- Pydantic Models ---
+class TextToAnalyze(BaseModel):
+    text: str = Field(..., min_length=1, description="The scripture text to analyze.")
+
+class ChiasticAnalysis(BaseModel):
+    type: str = "Chiastic"
+    center: str
+    elements: List[str]
+    score: float
+    match_count: int
+    depth: int
+
+class GoldenRatioAnalysis(BaseModel):
+    type: str = "Golden Ratio"
+    total_words: int
+    major_pivot: dict
+    minor_pivot: Optional[dict] = None
+
+class AnalysisResponse(BaseModel):
+    chiastic: Optional[ChiasticAnalysis] = None
+    golden_ratio: Optional[GoldenRatioAnalysis] = None
+
 # --- API Key Dependency ---
-async def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
+async def verify_api_key(x_api_key: str = Header(None)):
+    if API_KEY != "dev" and x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
-# --- Dummy Data for Forecaster ---
-# In a real system, this would come from a user event database.
-DUMMY_USER_EVENTS = {
-    "u1": [1, 2, 5, 8, 12, 13],
-    "u2": [3, 7, 9],
-}
-
 # --- API Endpoints ---
-@app.post("/analyze_text", response_model=List[PivotOut], dependencies=[Depends(verify_api_key)])
-async def perform_analysis(payload: PivotIn) -> List[PivotOut]:
-    """Analyzes text for chiastic and golden ratio patterns based on selected lenses."""
+@app.post("/analyze_text", response_model=AnalysisResponse, dependencies=[Depends(verify_api_key)])
+async def perform_analysis(payload: TextToAnalyze):
+    """Analyzes text for chiastic and golden ratio patterns."""
     try:
-        tokens = re.findall(r'\b\w+\b', payload.text_section.lower())
-        points: List[PivotPoint] = []
+        words = re.findall(r'\b\w+\b', payload.text.lower())
+        
+        chiastic_result_data = chiastic.detect(words)
+        chiastic_response = None
+        if chiastic_result_data:
+            center_index, score = chiastic_result_data
+            # The detector only provides index and score. Other fields are placeholders.
+            chiastic_response = ChiasticAnalysis(
+                center=words[center_index] if center_index < len(words) else "",
+                elements=[],
+                score=score,
+                match_count=0, # This would require a more advanced detector
+                depth=0,       # This would require a more advanced detector
+            )
 
-        if "CHIASMUS" in payload.lens:
-            res = chiastic.detect(tokens)
-            if res:
-                points.append(
-                    PivotPoint(detector="chiastic", position=res[0], score=res[1])
-                )
-        
-        if "GOLDEN" in payload.lens:
-            idx = golden.detect(tokens)
-            if idx is not None:
-                points.append(PivotPoint(detector="golden", position=idx, score=1.0))
-        
-        pivot_result = PivotOut(
-            text_section=payload.text_section,
-            scale=payload.scale,
-            points=points
+        golden_result_index = golden.detect(words)
+        golden_response = None
+        if golden_result_index is not None and golden_result_index < len(words):
+            minor_pivot_index = len(words) - golden_result_index
+            golden_response = GoldenRatioAnalysis(
+                total_words=len(words),
+                major_pivot={"index": golden_result_index, "word": words[golden_result_index]},
+                minor_pivot={"index": minor_pivot_index, "word": words[minor_pivot_index]} if minor_pivot_index < len(words) and minor_pivot_index >= 0 else None,
+            )
+
+        return AnalysisResponse(
+            chiastic=chiastic_response, 
+            golden_ratio=golden_response
         )
-        
-        return [pivot_result]
-
     except Exception as e:
+        logger.error(f"An unhandled error occurred during text analysis: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/forecast", response_model=List[ForecastPoint], dependencies=[Depends(verify_api_key)])
-async def forecast_events(req: ForecastRequest) -> List[ForecastPoint]:
-    """
-    Forecasts the probability of a pivot event for a user over a given horizon.
-    """
-    try:
-        # Get historical events for the user (using dummy data for now)
-        events = DUMMY_USER_EVENTS.get(req.user_id, [])
-
-        # Initialize and run the forecaster
-        forecaster = HawkesForecaster()
-        probabilities = forecaster.forecast(events=events, horizon=req.horizon)
-        
-        # Format the response
-        response = [
-            ForecastPoint(timestep=i + 1, probability=prob)
-            for i, prob in enumerate(probabilities)
-        ]
-        return response
-    except Exception as e:
-        # In a real app, you'd have more specific error handling
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting Pivot Analyzer Service. Ensure SANCTUM_API_KEY is set.")
+
+    logger.info("Starting Pivot Analyzer Service on http://0.0.0.0:8001")
     uvicorn.run(app, host="0.0.0.0", port=8001)
