@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "npm run dev:frontend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "cd backend && sh ./scripts/run_ngrok.sh",
     "install:backend": "pip install -r backend/requirements.txt",
